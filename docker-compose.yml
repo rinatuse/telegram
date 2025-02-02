@@ -1,0 +1,8 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    restart: always
+    volumes:
+      - ./education_bot.db:/app/education_bot.db
