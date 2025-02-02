@@ -61,6 +61,6 @@ class UserProgress(Base):
     test_score = Column(Integer)  # Результат теста в процентах
 
 def init_db():
-    engine = create_engine('sqlite:///education_bot.db')
+    engine = create_engine('sqlite:///education_bot.db', connect_args={'check_same_thread': False})
     Base.metadata.create_all(engine)
     return sessionmaker(bind=engine)()
