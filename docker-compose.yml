@@ -4,7 +4,9 @@ services:
   bot:
     build: .
     restart: always
-    volumes:
-      - ./education_bot.db:/app/education_bot.db
     environment:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+    volumes:
+      - type: bind
+        source: ./education_bot.db
+        target: /app/education_bot.db
