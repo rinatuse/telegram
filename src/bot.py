@@ -18,6 +18,8 @@ from database import (
 )
 from datetime import datetime
 
+import os
+from dotenv import load_dotenv
 
 class EducationBot:
     def __init__(self, token: str):
@@ -433,7 +435,15 @@ class EducationBot:
 
 def main():
     # Создаём бота и регистрируем обработчики
-    bot = EducationBot("7111457040:AAG5Gva1on5FOalc0icedlU4fFYf_FJbQS0")
+
+    load_dotenv()
+    token = os.getenv('TELEGRAM_BOT_TOKEN')
+
+    if not token:
+        raise ValueError("Не найден TELEGRAM_BOT_TOKEN в переменных окружения")
+    
+
+    bot = EducationBot(token)
 
     application = Application.builder().token(bot.token).build()
 
