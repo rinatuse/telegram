@@ -6,3 +6,5 @@ services:
     restart: always
     volumes:
       - ./education_bot.db:/app/education_bot.db
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
