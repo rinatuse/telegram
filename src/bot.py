@@ -38,6 +38,22 @@ class EducationBot:
         logger.info("Бот инициализирован")
         self._init_demo_data()
 
+    def get_main_menu_keyboard(self):
+        courses = self.db.query(Course).all()
+        keyboard = []
+        course_emojis = {"Общая фармакология": "🔬", "Антибиотики": "💊"}
+
+        for course in courses:
+            emoji = course_emojis.get(course.title, "📚")
+            keyboard.append(
+                [
+                    InlineKeyboardButton(
+                        f"{emoji} {course.title}", callback_data=f"course_{course.id}"
+                    )
+                ]
+            )
+        return InlineKeyboardMarkup(keyboard)
+
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Регистрируем пользователя, если он новый
         user = (
@@ -45,6 +61,14 @@ class EducationBot:
             .filter(User.telegram_id == update.effective_user.id)
             .first()
         )
+
+        if user and not user.is_new_user:
+            await update.message.reply_text(
+                "Вы уже зарегистрированы в системе! Используйте меню для навигации по курсам.",
+                reply_markup=self.get_main_menu_keyboard(),
+            )
+            return
+
         if not user:
             logger.info(
                 f"Получена команда /start от пользователя {update.effective_user.id}"
@@ -52,6 +76,7 @@ class EducationBot:
             user = User(
                 telegram_id=update.effective_user.id,
                 username=update.effective_user.username,
+                is_new_user=True,
             )
             self.db.add(user)
             self.db.commit()
@@ -95,6 +120,10 @@ class EducationBot:
         )
 
         logger.info("Отправлено приветственное сообщение")
+
+        if user.is_new_user:
+            user.is_new_user = False
+            self.db.commit()
 
     @staticmethod
     def generate_progress_bar(current, total, length=10):
