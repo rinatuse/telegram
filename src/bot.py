@@ -21,12 +21,21 @@ from datetime import datetime
 import os
 from dotenv import load_dotenv
 
+import logging
+
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
+
+logger = logging.getLogger(__name__)
+
 
 class EducationBot:
     def __init__(self, token: str):
         self.token = token
         self.db = init_db()
         self.user_states = {}  # Хранит состояние пользователей
+        logger.info("Бот инициализирован")
         self._init_demo_data()
 
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -37,6 +46,9 @@ class EducationBot:
             .first()
         )
         if not user:
+            logger.info(
+                f"Получена команда /start от пользователя {update.effective_user.id}"
+            )
             user = User(
                 telegram_id=update.effective_user.id,
                 username=update.effective_user.username,
@@ -46,6 +58,13 @@ class EducationBot:
 
         # Получаем все курсы из базы
         courses = self.db.query(Course).all()
+        logger.info(f"Найдено курсов: {len(courses)}")
+
+        if not courses:
+            logger.warning("Курсы не найдены в базе данных!")
+            await update.message.reply_text("К сожалению, сейчас нет доступных курсов.")
+            return
+
         keyboard = []
 
         course_emojis = {"Общая фармакология": "🔬", "Антибиотики": "💊"}
@@ -74,6 +93,8 @@ class EducationBot:
         await update.message.reply_text(
             welcome_text, reply_markup=reply_markup, parse_mode="Markdown"
         )
+
+        logger.info("Отправлено приветственное сообщение")
 
     @staticmethod
     def generate_progress_bar(current, total, length=10):
