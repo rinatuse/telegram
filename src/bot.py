@@ -21,6 +21,7 @@ from datetime import datetime
 import os
 from dotenv import load_dotenv
 
+
 class EducationBot:
     def __init__(self, token: str):
         self.token = token
@@ -110,7 +111,7 @@ class EducationBot:
                         )
                     ]
                 )
-            reply_markup = InlineKeyboardButton(keyboard)
+            reply_markup = InlineKeyboardMarkup(keyboard)
 
             await query.edit_message_text(
                 "🎓 *Выберите интересующий вас курс:*",
@@ -437,11 +438,10 @@ def main():
     # Создаём бота и регистрируем обработчики
 
     load_dotenv()
-    token = os.getenv('TELEGRAM_BOT_TOKEN')
+    token = os.getenv("TELEGRAM_BOT_TOKEN")
 
     if not token:
         raise ValueError("Не найден TELEGRAM_BOT_TOKEN в переменных окружения")
-    
 
     bot = EducationBot(token)
 
