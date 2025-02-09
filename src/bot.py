@@ -510,21 +510,22 @@ class EducationBot:
                     self.db.commit()
 
                     # Добавляем вопросы и варианты ответов
-                    for question_data in lesson_data["questions"]:
-                        question = Question(
-                            lesson_id=lesson.id, text=question_data["text"]
-                        )
-                        self.db.add(question)
-                        self.db.commit()
-
-                        for option_data in question_data["options"]:
-                            option = QuestionOption(
-                                question_id=question.id,
-                                text=option_data["text"],
-                                is_correct=option_data["is_correct"],
+                    if "questions" in lesson_data:
+                        for question_data in lesson_data["questions"]:
+                            question = Question(
+                                lesson_id=lesson.id, text=question_data["text"]
                             )
-                            self.db.add(option)
-                        self.db.commit()
+                            self.db.add(question)
+                            self.db.commit()
+
+                            for option_data in question_data["options"]:
+                                option = QuestionOption(
+                                    question_id=question.id,
+                                    text=option_data["text"],
+                                    is_correct=option_data["is_correct"],
+                                )
+                                self.db.add(option)
+                            self.db.commit()
 
 
 def main():
