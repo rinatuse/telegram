@@ -191,6 +191,10 @@ class EducationBot:
                     reply_markup=reply_markup,
                 )
 
+        elif query.data == "start_test":
+            # Используем существующую логику start_test, но адаптируем для callback query
+            await self.start_test(update, context)
+
         elif query.data.startswith("lesson_"):
             _, course_id, lesson_id = query.data.split("_")
             user_id = query.from_user.id
@@ -228,6 +232,15 @@ class EducationBot:
                     .all()
                 )
 
+                keyboard = [
+                    [
+                        InlineKeyboardButton(
+                            "🚀 Начать тестирование", callback_data="start_test"
+                        )
+                    ]
+                ]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+
                 lesson_text = (
                     f"✅ *Код верный!*\n\n"
                     f"📝 *{lesson.title}*\n"
@@ -235,7 +248,6 @@ class EducationBot:
                     f"{lesson.content}\n\n"
                     "───────────────\n"
                     "🚀 Готовы проверить свои знания?\n"
-                    "Нажмите /test чтобы начать тестирование"
                 )
 
                 if not questions:
@@ -248,7 +260,9 @@ class EducationBot:
                     return
 
                 # Показываем содержимое урока
-                await update.message.reply_text(lesson_text, parse_mode="Markdown")
+                await update.message.reply_text(
+                    lesson_text, reply_markup=reply_markup, parse_mode="Markdown"
+                )
 
                 # Преобразуем вопросы в список словарей для удобства
                 questions_data = []
@@ -288,18 +302,27 @@ class EducationBot:
 
     async def start_test(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Начало тестирования"""
-        user_id = update.message.from_user.id
+        # Определяем источник запроса (кнопка или команда)
+        if update.callback_query:
+            query = update.callback_query
+            user_id = query.from_user.id
+            message = query.message
+            await query.answer()  # Отвечаем на callback_query
+        else:
+            user_id = update.message.from_user.id
+            message = update.message
+
         if user_id not in self.user_states:
-            await update.message.reply_text("Сначала выберите урок с помощью /start")
+            await message.reply_text("Сначала выберите урок с помощью /start")
             return
 
         state = self.user_states[user_id]
         if "questions" not in state:
-            await update.message.reply_text("Сначала получите доступ к уроку")
+            await message.reply_text("Сначала получите доступ к уроку")
             return
 
         if not state["questions"]:
-            await update.message.reply_text(
+            await message.reply_text(
                 "К сожалению, для этого урока нет вопросов для тестирования"
             )
             return
@@ -317,18 +340,28 @@ class EducationBot:
 
             reply_markup = InlineKeyboardMarkup(keyboard)
 
-            await update.message.reply_text(
-                f"Вопрос {state['current_question'] + 1} из {len(state['questions'])}:\n\n"
-                f"{question['text']}",
-                reply_markup=reply_markup,
-            )
+            # Если это callback_query, редактируем существующее сообщение
+            if update.callback_query:
+                await message.edit_text(
+                    f"Вопрос {state['current_question'] + 1} из {len(state['questions'])}:\n\n"
+                    f"{question['text']}",
+                    reply_markup=reply_markup,
+                )
+            else:
+                await message.reply_text(
+                    f"Вопрос {state['current_question'] + 1} из {len(state['questions'])}:\n\n"
+                    f"{question['text']}",
+                    reply_markup=reply_markup,
+                )
 
             # Отмечаем, что пользователь в режиме теста
             state["test_mode"] = True
         except Exception as e:
-            await update.message.reply_text(
-                f"Произошла ошибка при загрузке вопросов. Пожалуйста, начните урок заново с помощью /start"
-            )
+            error_message = f"Произошла ошибка при загрузке вопросов. Пожалуйста, начните урок заново с помощью /start"
+            if update.callback_query:
+                await message.edit_text(error_message)
+            else:
+                await message.reply_text(error_message)
             print(f"Error in start_test: {e}")
             if user_id in self.user_states:
                 del self.user_states[user_id]
@@ -503,7 +536,6 @@ def main():
     application.add_error_handler(error_handler)
 
     application.add_handler(CommandHandler("start", bot.start))
-    application.add_handler(CommandHandler("test", bot.start_test))
     application.add_handler(CallbackQueryHandler(bot.button_handler))
     application.add_handler(
         MessageHandler(filters.TEXT & ~filters.COMMAND, bot.handle_text)
