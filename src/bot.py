@@ -491,41 +491,98 @@ class EducationBot:
 
     def _init_demo_data(self):
         """Инициализация данных курса по фармакологии"""
-        if not self.db.query(Course).first():
+        # Проверяем, есть ли уже курсы в базе данных
+        existing_courses = self.db.query(Course).all()
+        logger.info(
+            f"DEBUG: Найдено существующих курсов перед инициализацией: {len(existing_courses)}"
+        )
+
+        # Если курсов нет, начинаем инициализацию
+        if not existing_courses:
             from demo_data import DEMO_DATA
 
-            for course_data in DEMO_DATA["courses"]:
-                course = Course(title=course_data["title"])
-                self.db.add(course)
-                self.db.commit()
+            try:
+                # Логируем начало процесса
+                logger.info("DEBUG: Начинаем инициализацию демонстрационных данных")
 
-                for lesson_data in course_data["lessons"]:
-                    lesson = Lesson(
-                        title=lesson_data["title"],
-                        content=lesson_data["content"],
-                        access_code=lesson_data["access_code"],
-                        course_id=course.id,
-                    )
-                    self.db.add(lesson)
+                # Проходим по всем курсам в DEMO_DATA
+                for course_data in DEMO_DATA["courses"]:
+                    # Создаем новый курс
+                    course = Course(title=course_data["title"])
+                    self.db.add(course)
+                    logger.info(f"DEBUG: Создан курс: {course.title}")
+
+                    # Сохраняем курс в базе данных
                     self.db.commit()
+                    logger.info(f"DEBUG: Курс {course.title} сохранен в базе данных")
 
-                    # Добавляем вопросы и варианты ответов
-                    if "questions" in lesson_data:
-                        for question_data in lesson_data["questions"]:
-                            question = Question(
-                                lesson_id=lesson.id, text=question_data["text"]
-                            )
-                            self.db.add(question)
-                            self.db.commit()
+                    # Проходим по урокам текущего курса
+                    for lesson_data in course_data["lessons"]:
+                        # Создаем новый урок
+                        lesson = Lesson(
+                            title=lesson_data["title"],
+                            content=lesson_data["content"],
+                            access_code=lesson_data["access_code"],
+                            course_id=course.id,
+                        )
+                        self.db.add(lesson)
+                        logger.info(f"DEBUG: Создан урок: {lesson.title}")
 
-                            for option_data in question_data["options"]:
-                                option = QuestionOption(
-                                    question_id=question.id,
-                                    text=option_data["text"],
-                                    is_correct=option_data["is_correct"],
+                        # Сохраняем урок в базе данных
+                        self.db.commit()
+                        logger.info(
+                            f"DEBUG: Урок {lesson.title} сохранен в базе данных"
+                        )
+
+                        # Проверяем, есть ли вопросы для этого урока
+                        if "questions" in lesson_data:
+                            # Проходим по вопросам урока
+                            for question_data in lesson_data["questions"]:
+                                # Создаем новый вопрос
+                                question = Question(
+                                    lesson_id=lesson.id, text=question_data["text"]
                                 )
-                                self.db.add(option)
-                            self.db.commit()
+                                self.db.add(question)
+                                logger.info(f"DEBUG: Создан вопрос: {question.text}")
+
+                                # Сохраняем вопрос в базе данных
+                                self.db.commit()
+                                logger.info(f"DEBUG: Вопрос сохранен в базе данных")
+
+                                # Проходим по вариантам ответов
+                                for option_data in question_data["options"]:
+                                    # Создаем вариант ответа
+                                    option = QuestionOption(
+                                        question_id=question.id,
+                                        text=option_data["text"],
+                                        is_correct=option_data["is_correct"],
+                                    )
+                                    self.db.add(option)
+                                    logger.info(
+                                        f"DEBUG: Создан вариант ответа: {option.text}"
+                                    )
+
+                                # Сохраняем варианты ответов
+                                self.db.commit()
+                                logger.info(
+                                    "DEBUG: Варианты ответов сохранены в базе данных"
+                                )
+
+                # Финальная проверка
+                total_courses = self.db.query(Course).count()
+                total_lessons = self.db.query(Lesson).count()
+                total_questions = self.db.query(Question).count()
+
+                logger.info(
+                    f"DEBUG: Инициализация завершена. Курсы: {total_courses}, Уроки: {total_lessons}, Вопросы: {total_questions}"
+                )
+
+            except Exception as e:
+                # Логируем любые ошибки, которые могут возникнуть
+                logger.error(f"ОШИБКА при инициализации демо-данных: {e}")
+                # Откатываем транзакцию в случае ошибки
+                self.db.rollback()
+                raise
 
 
 def main():
