@@ -419,13 +419,21 @@ class EducationBot:
                     state["correct_answers"], len(state["questions"])
                 )
 
+                keyboard = [
+                    [
+                        InlineKeyboardButton(
+                            "🏠 Вернуться к курсам", callback_data="main_menu"
+                        )
+                    ]
+                ]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+
                 result_text = (
                     "🎯 *Тест завершен!*\n\n"
                     f"Прогресс: {progress_bar}\n"
                     f"Правильных ответов: {state['correct_answers']} из {len(state['questions'])}\n"
                     f"Ваш результат: {score:.1f}%\n\n"
                     f"{'🎉 Отличная работа!' if score >= 80 else '💪 Продолжайте практиковаться!'}\n\n"
-                    "Используйте /start чтобы выбрать новый урок"
                 )
 
                 # Сохраняем прогресс в базе данных
@@ -443,7 +451,9 @@ class EducationBot:
                 except Exception as e:
                     print(f"Error saving progress: {e}")
 
-                await query.edit_message_text(result_text, parse_mode="Markdown")
+                await query.edit_message_text(
+                    result_text, reply_markup=reply_markup, parse_mode="Markdown"
+                )
                 # Очищаем состояние пользователя
                 del self.user_states[user_id]
 
